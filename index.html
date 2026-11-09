@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FastFist — Gratte le King</title>
+  <meta name="description" content="Analyse du menu Burger King France : coût unitaire de chaque élément de menu, €/1000 kcal, meilleurs plans pour manger un max pour pas cher.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍔</text></svg>">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">✊🍔</span>
+        <div>
+          <h1>FastFist</h1>
+          <p class="tag">Gratte le King&nbsp;: le max de bouffe pour le min d'euros</p>
+        </div>
+      </div>
+      <div class="resto-picker">
+        <label for="resto-search" class="sr">Restaurant</label>
+        <div class="picker-row">
+          <input id="resto-search" type="search" autocomplete="off" placeholder="Ville, code postal ou nom du resto…">
+          <button id="geo-btn" class="btn ghost" type="button" title="Trouver le resto le plus proche">📍 Près de moi</button>
+        </div>
+        <ul id="resto-results" class="resto-results" role="listbox" hidden></ul>
+        <div id="resto-current" class="resto-current">Chargement…</div>
+      </div>
+    </div>
+    <nav class="wrap tabs" role="tablist">
+      <button role="tab" data-tab="top" aria-selected="true">🏆 Top gratte</button>
+      <button role="tab" data-tab="menus">🍟 Menus</button>
+      <button role="tab" data-tab="produits">🧾 Produits seuls</button>
+      <button role="tab" data-tab="optim">🧮 Optimiseur</button>
+      <button role="tab" data-tab="france">🇫🇷 France</button>
+      <button role="tab" data-tab="methode">❓ Méthode</button>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <!-- ================================================================ TOP -->
+    <section id="tab-top" class="tab-panel">
+      <div class="controls">
+        <span class="lbl">Ce qui compte pour toi&nbsp;:</span>
+        <div class="seg" id="crit-seg">
+          <button data-crit="kcal" class="on">🔥 Calories (ce qui cale)</button>
+          <button data-crit="prot">💪 Protéines</button>
+          <button data-crit="value">💸 Valeur à la carte</button>
+        </div>
+      </div>
+      <div id="podium" class="cards"></div>
+      <h2>Classement général des offres <small>(produits seuls + menus en version optimisée)</small></h2>
+      <div class="controls">
+        <label>Afficher <select id="top-filter">
+          <option value="nosauce">tout sauf sauces & boissons</option>
+          <option value="all">tout (les sauces à 0,40 € trustent le top)</option>
+          <option value="menu">menus uniquement</option>
+          <option value="product">produits seuls uniquement</option>
+          <option value="nodrink">tout sauf boissons, sauces & desserts</option>
+        </select></label>
+      </div>
+      <div class="table-wrap"><table id="top-table" class="data"></table></div>
+    </section>
+
+    <!-- ================================================================ MENUS -->
+    <section id="tab-menus" class="tab-panel" hidden>
+      <div class="controls">
+        <input id="menu-search" type="search" placeholder="Filtrer les menus…">
+        <select id="menu-family"><option value="">Toutes les familles</option></select>
+        <select id="menu-config">
+          <option value="default">Composition par défaut</option>
+          <option value="value" selected>Version maxée : valeur à la carte</option>
+          <option value="kcal">Version maxée : calories / €</option>
+          <option value="prot">Version maxée : protéines / €</option>
+        </select>
+      </div>
+      <p class="hint">Clique sur un menu pour voir le <strong>coût unitaire de chaque élément</strong> (prix du menu réparti au prorata des prix à la carte) et toutes les options possibles à chaque étape.</p>
+      <div class="table-wrap"><table id="menu-table" class="data"></table></div>
+    </section>
+
+    <!-- ================================================================ PRODUITS -->
+    <section id="tab-produits" class="tab-panel" hidden>
+      <div class="controls">
+        <input id="prod-search" type="search" placeholder="Filtrer les produits…">
+        <select id="prod-role"><option value="">Toutes catégories</option></select>
+      </div>
+      <div class="table-wrap"><table id="prod-table" class="data"></table></div>
+    </section>
+
+    <!-- ================================================================ OPTIM -->
+    <section id="tab-optim" class="tab-panel" hidden>
+      <div class="optim-grid">
+        <form id="optim-form" class="panel">
+          <h2>Construis ta commande parfaite</h2>
+          <div class="seg" id="optim-mode">
+            <button type="button" data-mode="budget" class="on">J'ai un budget</button>
+            <button type="button" data-mode="target">J'ai un objectif</button>
+          </div>
+          <label class="field" id="f-budget">Budget (€)
+            <input id="o-budget" type="number" min="1" max="80" step="0.5" value="10">
+          </label>
+          <label class="field" id="f-target" hidden>Objectif à atteindre
+            <input id="o-target" type="number" min="1" step="1" value="2000">
+          </label>
+          <label class="field">Maximiser
+            <select id="o-obj">
+              <option value="kcal">🔥 Calories</option>
+              <option value="prot">💪 Protéines (g)</option>
+              <option value="burgers">🍔 Nombre de burgers / plats</option>
+              <option value="pcs">🍗 Pièces (nuggets, tenders, rings…)</option>
+              <option value="value">💸 Valeur à la carte (€)</option>
+            </select>
+          </label>
+          <label class="field">Max par article
+            <input id="o-max" type="number" min="1" max="10" value="3">
+          </label>
+          <fieldset class="field">
+            <legend>Autorisés</legend>
+            <div class="checks" id="o-roles"></div>
+          </fieldset>
+          <button class="btn" type="submit">⚡ Optimiser</button>
+        </form>
+        <div class="panel" id="optim-result"><p class="muted">Choisis un budget ou un objectif puis lance l'optimisation.</p></div>
+      </div>
+    </section>
+
+    <!-- ================================================================ FRANCE -->
+    <section id="tab-france" class="tab-panel" hidden>
+      <div class="cards" id="france-cards"></div>
+      <div class="two-col">
+        <div>
+          <h2>Les 15 restos les moins chers de France</h2>
+          <p class="hint">Indice 100 = prix médian France, calculé sur les produits vendus seuls présents dans ≥ 90 % des restos.</p>
+          <ol id="cheap-restos" class="rank"></ol>
+        </div>
+        <div>
+          <h2>Les 15 plus chers</h2>
+          <p class="hint">Aéroports, gares, autoroutes… sans surprise.</p>
+          <ol id="pricey-restos" class="rank"></ol>
+        </div>
+      </div>
+      <h2 id="near-title" hidden>Les moins chers près de toi</h2>
+      <ol id="near-restos" class="rank" hidden></ol>
+    </section>
+
+    <!-- ================================================================ METHODE -->
+    <section id="tab-methode" class="tab-panel" hidden>
+      <div class="panel prose">
+        <h2>Comment c'est calculé</h2>
+        <h3>D'où viennent les données</h3>
+        <p>Un scraper (<code>scraper/scrape.py</code>) récupère pour <strong>chaque restaurant Burger King France</strong> le catalogue complet utilisé par la commande en ligne&nbsp;: prix des produits seuls, prix des menus en taille M / L / XL, menus enfants, Bon et Pas Cher, offres, et les <strong>suppléments</strong> facturés quand tu prends une option premium dans un menu. Les calories et protéines viennent des fiches nutritionnelles publiques du site. Les prix varient énormément d'un resto à l'autre, d'où le sélecteur.</p>
+        <h3>Prix à la carte</h3>
+        <p>Pour chaque élément d'un menu, on prend le prix auquel il est vendu seul dans le même resto. Si un élément n'est pas vendu seul (ex. un burger qui n'existe qu'en menu), on prend le prix catalogue de l'article, signalé par <span class="badge warn">≈</span>.</p>
+        <h3>Coût unitaire dans un menu</h3>
+        <p>Le prix payé pour le menu (+ suppléments) est <strong>réparti entre ses éléments au prorata de leur prix à la carte</strong>. Exemple&nbsp;: menu à 9&nbsp;€, burger 7&nbsp;€ + frites 3,40&nbsp;€ + boisson 2,70&nbsp;€ seuls (= 13,10&nbsp;€) → le burger te revient à 9 × 7 / 13,10 = 4,81&nbsp;€. On affiche aussi le <strong>coût marginal</strong>&nbsp;: ce que le burger coûte en plus si tu achetais le reste à la carte.</p>
+        <h3>Versions « maxées »</h3>
+        <p>Chaque étape d'un menu propose plusieurs choix (frites, onion rings, King Fries avec supplément…). FastFist choisit automatiquement, étape par étape&nbsp;:</p>
+        <ul>
+          <li><strong>Valeur</strong>&nbsp;: l'option qui maximise <em>prix à la carte − supplément</em>.</li>
+          <li><strong>Calories / €</strong> et <strong>Protéines / €</strong>&nbsp;: la combinaison qui maximise le ratio (algorithme de Dinkelbach, exact).</li>
+        </ul>
+        <h3>Optimiseur</h3>
+        <p>Problème du sac à dos borné (programmation dynamique au centime près) sur tous les produits seuls et menus (en version maxée pour l'objectif choisi). Mode budget&nbsp;: maximise l'objectif sans dépasser le budget. Mode objectif&nbsp;: atteint l'objectif pour le prix le plus bas.</p>
+        <h3>Limites</h3>
+        <ul>
+          <li>Prix de la commande en ligne / borne&nbsp;: les prix en caisse ou en livraison peuvent différer, et les coupons de l'appli ne sont pas pris en compte.</li>
+          <li>Quelques produits n'ont pas de fiche nutritionnelle&nbsp;: ils comptent pour 0&nbsp;kcal.</li>
+          <li>Site non officiel, sans lien avec Burger King®. Toutes les marques appartiennent à leurs propriétaires.</li>
+        </ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <span id="updated"></span> · Projet non officiel, sans affiliation avec Burger King®. · <a href="https://github.com/charlesterrey/fastfist">Code source</a>
+  </footer>
+
+  <script src="assets/engine.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
