@@ -1,7 +1,13 @@
-# ✊🍔 FastFist — Gratte le King
+# ✊🍔 FastFist — Gratte les fast-foods
 
-Page HTML qui récupère **le menu complet de Burger King France, resto par resto**, et calcule les meilleures
-façons d'avoir un repas qui cale pour pas cher.
+Page HTML qui récupère **le menu complet de Burger King et de Quick France, resto par resto**, et calcule
+les meilleures façons d'avoir un repas qui cale pour pas cher.
+
+| Chaîne | Restos | Source |
+|---|---|---|
+| 👑 Burger King | ~635 | catalogue public de la commande en ligne + fiches nutrition du site |
+| ⚡ Quick | 200 | API publique de quick.fr + déclaration nutritionnelle (PDF) |
+| McDonald's, KFC | — | non inclus : leurs sites bloquent la récupération automatique (captcha / anti-bot) |
 
 ## Ce que fait la page
 
@@ -11,6 +17,7 @@ façons d'avoir un repas qui cale pour pas cher.
 | 🍟 **Menus** | Chaque menu (classiques M/L/XL, enfants, Bon et Pas Cher, Baby Burgers, offres…) avec son prix, sa valeur à la carte, l'économie réalisée et, en cliquant dessus, **le coût unitaire de chaque élément** (prix du menu réparti au prorata des prix à la carte) et son coût marginal. Chaque menu peut être affiché en composition par défaut ou en version « maxée » (valeur, calories/€, protéines/€) : le meilleur choix est fait automatiquement à chaque étape, suppléments compris. |
 | 🧾 **Produits seuls** | Tous les produits vendus seuls : prix, écart avec la médiane France, kcal, €/1000 kcal, protéines, €/10 g de protéines, €/pièce (nuggets, tenders, onion rings…). |
 | 🧮 **Optimiseur** | « J'ai 10 € » → la commande qui maximise les calories / protéines / nombre de burgers / pièces / valeur. Ou « je veux 2000 kcal » → la commande la moins chère pour y arriver. Optimum exact (sac à dos borné, programmation dynamique au centime). |
+| ⚔️ **Duel** | Ton resto face au resto le plus proche de l'autre chaîne : burger le moins cher, menu le moins cher, prix par burger, €/1000 kcal, protéines, poulet, ce que 10 € achètent… avec un score. |
 | 🇫🇷 **France** | Indice de prix de chaque resto (100 = médiane France), les restos les moins chers / plus chers, les moins chers autour de toi. |
 
 Les prix **varient énormément d'un resto à l'autre** (le cheeseburger va du simple au double), d'où le
@@ -18,20 +25,21 @@ sélecteur de restaurant (recherche ville / CP / nom, ou géolocalisation).
 
 ## Données
 
-`scraper/scrape.py` (Python 3, aucune dépendance) récupère :
+Un scraper par chaîne (Python 3, aucune dépendance ; `pdftotext` pour la nutrition Quick) :
 
-- la liste des ~640 restos et leurs fiches (API publique du store-locator de burgerking.fr) ;
-- pour chaque resto, le catalogue complet utilisé par la commande en ligne : prix des produits seuls,
-  prix des menus par taille, étapes de chaque menu (choix possibles) et suppléments ;
-- les valeurs nutritionnelles (kcal, protéines) depuis les pages `/carte` du site.
+- `scraper/bk.py` : liste des restos BK (store-locator), catalogue complet de chaque resto (prix seuls, menus
+  par taille, étapes et choix, suppléments), valeurs nutritionnelles depuis les pages `/carte`.
+- `scraper/quick.py` : liste des restos Quick, produits par catégorie et menus (M / L, enfants) avec
+  suppléments via l'API de quick.fr, nutrition depuis la déclaration nutritionnelle officielle.
+- `scraper/common.py` : HTTP, classification des produits, statistiques et écriture.
 
-Il écrit dans `data/` :
+Chaque scraper écrit dans `data/<chaîne>/` (`bk`, `quick`) :
 
 ```
-data/restaurants.json     liste des restos + indice de prix + clé de leur grille de prix
-data/catalog.json         produits (nom, rôle, kcal, protéines, pièces), menus, étapes de menus
-data/prices/<hash>.json   grille de prix d'un resto (produits + menus)
-data/stats.json           min / médiane / max France par produit et par menu
+restaurants.json     liste des restos + indice de prix + clé de leur grille de prix
+catalog.json         produits (nom, rôle, kcal, protéines, pièces), menus, étapes de menus
+prices/<hash>.json   grille de prix d'un resto (produits + menus)
+stats.json           min / médiane / max France par produit et par menu
 ```
 
 Une GitHub Action (`.github/workflows/scrape.yml`) relance le scrape tous les jours et commit les
@@ -40,7 +48,8 @@ nouveaux prix.
 ## Lancer en local
 
 ```bash
-python3 scraper/scrape.py          # ~3-4 min pour tous les restos (--limit 20 pour tester)
+python3 scraper/bk.py              # ~3-4 min pour tous les restos BK (--limit 20 pour tester)
+python3 scraper/quick.py           # ~3 min pour Quick (apt install poppler-utils pour la nutrition)
 python3 -m http.server 8000        # puis http://localhost:8000
 ```
 
@@ -64,5 +73,5 @@ Le workflow `.github/workflows/pages.yml` déploie le site à chaque push sur `m
 
 ## Avertissement
 
-Projet perso non officiel, sans aucun lien avec Burger King®. Les prix sont ceux de la commande en
+Projet perso non officiel, sans aucun lien avec Burger King® ni Quick®. Les prix sont ceux de la commande en
 ligne au moment du relevé ; en caisse, en livraison ou avec les coupons de l'appli, ils peuvent différer.

@@ -5,7 +5,12 @@
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 
+  const CHAINS = [
+    { id: "bk", name: "Burger King", short: "BK", icon: "👑" },
+    { id: "quick", name: "Quick", short: "Quick", icon: "⚡" },
+  ];
   const state = {
+    chain: "bk", data: {}, grids: {},
     catalog: null, stats: null, restaurants: [], resto: null, model: null,
     crit: "kcal", tab: "top", userPos: null,
     sort: { top: ["ratio", 1], menus: ["savingPct", -1], produits: ["kcalPerEuro", 1] },
@@ -17,7 +22,9 @@
   const n1 = (x) => x == null || !isFinite(x) ? "—" : x.toLocaleString("fr-FR", { maximumFractionDigits: 1 });
   const pct = (x) => !isFinite(x) ? "—" : (x * 100).toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " %";
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  const img = (u, cls = "thumb") => u ? `<img class="${cls}" loading="lazy" alt="" src="${esc(u)}?w=96&org_if_sml=1">` : `<span class="${cls} ph">🍔</span>`;
+  const img = (u, cls = "thumb") => u
+    ? `<img class="${cls}" loading="lazy" alt="" src="${esc(u)}${u.includes("medias.burgerking.fr") ? "?w=96&org_if_sml=1" : ""}" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'${cls} ph',textContent:'🍔'}))">`
+    : `<span class="${cls} ph">🍔</span>`;
   const per1000 = (price, kcal) => kcal > 0 ? (price * 1000) / kcal : Infinity; // centimes / 1000 kcal
   const per10g = (price, prot) => prot > 0 ? (price * 10) / prot : Infinity;
   const STEP_LABEL = { BURGER: "Plat", SIDE: "Accomp.", DRINK: "Boisson", SWEET: "Dessert", TOY: "Jouet", GIFT: "Cadeau", OTHER: "Bonus", NONE: "Élément" };
@@ -34,23 +41,53 @@
     return r.json();
   }
 
-  async function init() {
-    try {
-      const [rs, cat, st] = await Promise.all([getJSON("data/restaurants.json"), getJSON("data/catalog.json"), getJSON("data/stats.json")]);
-      state.restaurants = rs.restaurants;
-      state.catalog = cat;
-      state.stats = st;
-      $("#updated").textContent = "Prix relevés le " + new Date(rs.updated).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
-    } catch (e) {
-      $("#resto-current").innerHTML = `<span class="err">Impossible de charger les données (${esc(e.message)}). Lance <code>python3 scraper/scrape.py</code> puis sers le dossier en HTTP.</span>`;
-      return;
+  async function loadChain(id) {
+    if (!state.data[id]) {
+      const base = `data/${id}/`;
+      const [rs, cat, st] = await Promise.all([getJSON(base + "restaurants.json"), getJSON(base + "catalog.json"), getJSON(base + "stats.json")]);
+      rs.restaurants.forEach((r) => (r.chain = id));
+      state.data[id] = { restaurants: rs.restaurants, catalog: cat, stats: st, updated: rs.updated };
     }
+    return state.data[id];
+  }
+
+  async function loadGrid(chain, r) {
+    const key = chain + "/" + r.grid;
+    if (!state.grids[key]) state.grids[key] = getJSON(`data/${chain}/prices/${r.grid}.json`);
+    return state.grids[key];
+  }
+
+  const chainName = (id) => (CHAINS.find((c) => c.id === id) || {}).name || id;
+  const saved = (k) => { try { return localStorage.getItem(k); } catch (_) { return null; } };
+  const save = (k, v) => { try { localStorage.setItem(k, v); } catch (_) { /* stockage indisponible */ } };
+
+  async function init() {
+    const hash = new URLSearchParams(location.hash.slice(1));
+    const wanted = hash.get("c") || saved("ff-chain") || "bk";
+    $("#chain-seg").innerHTML = CHAINS.map((c) => `<button type="button" data-chain="${c.id}">${c.icon} ${esc(c.name)}</button>`).join("");
     bindUI();
-    let saved = null;
-    try { saved = localStorage.getItem("ff-resto"); } catch (_) { /* stockage indisponible */ }
-    const fromHash = new URLSearchParams(location.hash.slice(1)).get("r");
-    const first = state.restaurants.find((r) => r.id === fromHash) || state.restaurants.find((r) => r.id === saved)
-      || state.restaurants.find((r) => /paris/i.test(r.city)) || state.restaurants[0];
+    try {
+      await switchChain(CHAINS.some((c) => c.id === wanted) ? wanted : "bk", hash.get("r"));
+    } catch (e) {
+      $("#resto-current").innerHTML = `<span class="err">Impossible de charger les données (${esc(e.message)}). Lance les scrapers (<code>scraper/bk.py</code>, <code>scraper/quick.py</code>) puis sers le dossier en HTTP.</span>`;
+    }
+  }
+
+  async function switchChain(id, restoId) {
+    const d = await loadChain(id);
+    state.chain = id;
+    state.restaurants = d.restaurants;
+    state.catalog = d.catalog;
+    state.stats = d.stats;
+    save("ff-chain", id);
+    $$("#chain-seg button").forEach((b) => b.classList.toggle("on", b.dataset.chain === id));
+    $("#resto-search").placeholder = `Resto ${chainName(id)} : ville, code postal, nom…`;
+    $("#updated").textContent = `Prix ${chainName(id)} relevés le ` + new Date(d.updated).toLocaleString("fr-FR", { dateStyle: "long", timeStyle: "short" });
+    // par défaut : resto mémorisé, sinon le plus proche du resto précédent (autre chaîne), sinon Paris
+    const prev = state.resto;
+    const first = d.restaurants.find((r) => r.id === restoId) || d.restaurants.find((r) => r.id === saved("ff-resto-" + id))
+      || (prev && prev.lat && nearestIn(d.restaurants, prev, 1)[0])
+      || d.restaurants.find((r) => /paris/i.test(r.city)) || d.restaurants[0];
     await selectResto(first.id);
   }
 
@@ -58,13 +95,13 @@
     const r = state.restaurants.find((x) => x.id === id);
     if (!r) return;
     $("#resto-current").innerHTML = `Chargement de ${esc(r.name)}…`;
-    const grid = await getJSON(`data/prices/${r.grid}.json`);
+    const grid = await loadGrid(state.chain, r);
     state.resto = r;
     state.model = E.buildModel(state.catalog, grid);
-    try { localStorage.setItem("ff-resto", id); } catch (_) { /* rien */ }
-    history.replaceState(null, "", "#r=" + id);
+    save("ff-resto-" + state.chain, id);
+    history.replaceState(null, "", `#c=${state.chain}&r=${encodeURIComponent(id)}`);
     const idx = r.idx ? ` · indice prix <b class="${r.idx > 103 ? "bad" : r.idx < 100 ? "good" : ""}">${n1(r.idx)}</b>` : "";
-    $("#resto-current").innerHTML = `📍 <b>${esc(r.name)}</b> <span class="muted">${esc(r.address)}</span>${idx}`;
+    $("#resto-current").innerHTML = `📍 <b>${esc(chainName(state.chain))} ${esc(r.name)}</b> <span class="muted">${esc(r.address)}</span>${idx}`;
     $("#resto-search").value = "";
     fillFamilySelect();
     renderAll();
@@ -73,6 +110,7 @@
   /* ------------------------------------------------------------ UI */
   function bindUI() {
     $$(".tabs [role=tab]").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+    $$("#chain-seg button").forEach((b) => b.addEventListener("click", () => { if (b.dataset.chain !== state.chain) switchChain(b.dataset.chain); }));
     $$("#crit-seg button").forEach((b) => b.addEventListener("click", () => {
       state.crit = b.dataset.crit;
       $$("#crit-seg button").forEach((x) => x.classList.toggle("on", x === b));
@@ -126,6 +164,7 @@
     $$(".tabs [role=tab]").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === t));
     $$(".tab-panel").forEach((p) => (p.hidden = p.id !== "tab-" + t));
     if (t === "france") renderFrance();
+    if (t === "duel") renderDuel();
   }
 
   function geolocate() {
@@ -146,9 +185,10 @@
     const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
     return 2 * R * Math.asin(Math.sqrt(h));
   }
-  function nearest(pos, k) {
-    return state.restaurants.filter((r) => r.lat).map((r) => ({ ...r, d: dist(pos, r) })).sort((a, b) => a.d - b.d).slice(0, k);
+  function nearestIn(list, pos, k) {
+    return list.filter((r) => r.lat).map((r) => ({ ...r, d: dist(pos, r) })).sort((a, b) => a.d - b.d).slice(0, k);
   }
+  function nearest(pos, k) { return nearestIn(state.restaurants, pos, k); }
 
   function fillFamilySelect() {
     const fams = [...new Set(state.model.menus.map((m) => m.fam))].sort((a, b) => {
@@ -165,6 +205,7 @@
   function renderAll() {
     renderTop(); renderMenus(); renderProducts();
     if (state.tab === "france") renderFrance();
+    if (state.tab === "duel") renderDuel();
     $("#optim-result").innerHTML = `<p class="muted">Choisis un budget ou un objectif puis lance l'optimisation.</p>`;
   }
 
@@ -390,6 +431,69 @@
         <td class="num">${eur(o.price * q)}</td><td class="num">${n0(o.kcal * q)}</td><td class="num">${n0(o.prot * q)}</td></tr>`).join("")}
       </tbody></table>
       <p class="muted small">Optimum exact (sac à dos borné, ${items.length} offres, ${ms} ms). Les menus sont pris dans leur version maxée pour l'objectif choisi.</p>`;
+  }
+
+  /* ------------------------------------------------------------ DUEL */
+  function keyMetrics(model) {
+    const all = E.offers(model, "kcal").filter((o) => o.price > 0);
+    const food = all.filter((o) => !["boisson", "sauce"].includes(o.role));
+    const burgers = [...model.products.values()].filter((p) => p.alone && p.price > 0 && p.role === "plat").sort((a, b) => a.price - b.price);
+    const kcal = food.filter((o) => o.kcal > 0).map((o) => ({ o, v: per1000(o.price, o.kcal) })).sort((a, b) => a.v - b.v)[0];
+    const prot = all.filter((o) => o.prot > 0 && o.role !== "sauce").map((o) => ({ o, v: per10g(o.price, o.prot) })).sort((a, b) => a.v - b.v)[0];
+    const perBurger = model.menus.map((ms) => E.configure(ms, "burgers")).filter((c) => c.burgers >= 1)
+      .map((c) => ({ c, v: c.paid / c.burgers })).sort((a, b) => a.v - b.v)[0];
+    const cheapMenu = model.menus.filter((ms) => !ms.kids).map((ms) => E.configure(ms, "default")).sort((a, b) => a.paid - b.paid)[0];
+    const ten = E.knapsack(food, "kcal", 3, 1000).budget(1000);
+    const cheese = [...model.products.values()].find((p) => p.alone && /^cheeseburger$/i.test(p.n));
+    const nugget = all.filter((o) => o.pcs > 0 && o.role === "poulet").map((o) => ({ o, v: o.price / o.pcs })).sort((a, b) => a.v - b.v)[0];
+    return [
+      { k: "Burger seul le moins cher", v: burgers[0]?.price, show: (m) => `<b>${eur(m.v)}</b><span class="muted">${esc(burgers[0]?.n || "")}</span>` },
+      { k: "Cheeseburger", v: cheese?.price, show: (m) => `<b>${eur(m.v)}</b>` },
+      { k: "Menu adulte le moins cher", v: cheapMenu?.paid, show: (m) => `<b>${eur(m.v)}</b><span class="muted">${esc(cheapMenu ? cheapMenu.ms.n + " (" + cheapMenu.ms.size + ")" : "")}</span>` },
+      { k: "Meilleur prix par burger (en menu)", v: perBurger?.v, show: (m) => `<b>${eur(m.v)}</b><span class="muted">${esc(perBurger ? perBurger.c.ms.n + " (" + perBurger.c.ms.size + ")" : "")}</span>` },
+      { k: "Ce qui cale le plus : € / 1000 kcal", v: kcal?.v, show: (m) => `<b>${eur(m.v)}</b><span class="muted">${esc(kcal?.o.label || "")}</span>` },
+      { k: "Protéines : € / 10 g", v: prot?.v, show: (m) => `<b>${eur(m.v)}</b><span class="muted">${esc(prot?.o.label || "")}</span>` },
+      { k: "Pièce de poulet la moins chère", v: nugget?.v, show: (m) => `<b>${eur(m.v)}</b><span class="muted">${esc(nugget?.o.label || "")}</span>` },
+      { k: "Avec 10 € : calories max", v: ten.kcal, higher: true, show: (m) => `<b>${n0(m.v)} kcal</b><span class="muted">${esc(ten.lines.map((l) => l.q + "× " + l.o.label).join(" + "))} — ${eur(ten.price)}</span>` },
+    ];
+  }
+
+  async function renderDuel() {
+    const box = $("#duel");
+    if (!state.resto) return;
+    box.innerHTML = `<p class="muted">Chargement du duel…</p>`;
+    const sides = [{ chain: state.chain, r: state.resto, model: state.model, d: 0 }];
+    const missing = [];
+    for (const c of CHAINS) {
+      if (c.id === state.chain) continue;
+      try {
+        const data = await loadChain(c.id);
+        const near = state.resto.lat ? nearestIn(data.restaurants, state.resto, 1)[0] : null;
+        if (!near) continue;
+        const model = E.buildModel(data.catalog, await loadGrid(c.id, near));
+        sides.push({ chain: c.id, r: near, model, d: near.d });
+      } catch (e) { missing.push(c.name); }
+    }
+    const mets = sides.map((s) => keyMetrics(s.model));
+    const wins = sides.map(() => 0);
+    const rows = mets[0].map((row, i) => {
+      const vals = mets.map((m) => m[i].v);
+      const ok = vals.filter((v) => v != null && isFinite(v));
+      const best = ok.length > 1 ? (row.higher ? Math.max(...ok) : Math.min(...ok)) : null;
+      const cells = mets.map((m, si) => {
+        const v = m[i].v, win = best != null && v === best && ok.filter((x) => x === best).length === 1;
+        if (win) wins[si]++;
+        return `<td class="${win ? "win" : ""}">${v == null || !isFinite(v) ? '<span class="muted">—</span>' : m[i].show(m[i])}</td>`;
+      }).join("");
+      return `<tr><td class="metric">${esc(row.k)}</td>${cells}</tr>`;
+    }).join("");
+    const head = sides.map((s) => `<th>${esc(chainName(s.chain))}<small>${esc(s.r.name)}${s.d ? ` · à ${n1(s.d)} km` : " · ton resto"}</small></th>`).join("");
+    const leader = Math.max(...wins);
+    const score = sides.map((s, i) => `${esc(chainName(s.chain))} ${wins[i]}`).join(" – ");
+    box.innerHTML = sides.length < 2 ? `<p class="muted">Aucun resto d'une autre chaîne trouvé.</p>`
+      : `<p class="score">Score : ${score} ${wins.filter((w) => w === leader).length === 1 ? "→ " + esc(chainName(sides[wins.indexOf(leader)].chain)) + " gagne 🏆" : "→ égalité"}</p>
+         <div class="duel"><table><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+    $("#duel-missing").textContent = "McDonald's et KFC ne sont pas comparés : leurs sites bloquent la récupération automatique des prix." + (missing.length ? ` Données indisponibles : ${missing.join(", ")}.` : "");
   }
 
   /* ------------------------------------------------------------ FRANCE */

@@ -1,4 +1,4 @@
-name: Mise à jour des prix BK
+name: Mise à jour des prix
 
 on:
   schedule:
@@ -17,8 +17,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Scraper le menu de tous les restos
-        run: python3 scraper/scrape.py --workers 12
+      - name: Outils (pdftotext pour la nutrition Quick)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Burger King
+        run: python3 scraper/bk.py --workers 12
+      - name: Quick
+        run: python3 scraper/quick.py --workers 8
       - name: Commit des nouvelles données
         run: |
           git config user.name "fastfist-bot"
@@ -27,6 +31,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "Aucun changement de prix."
           else
-            git commit -m "data: prix BK du $(date -u +%Y-%m-%d)"
+            git commit -m "data: prix du $(date -u +%Y-%m-%d)"
             git push
           fi

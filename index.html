@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>FastFist — Gratte le King</title>
-  <meta name="description" content="Analyse du menu Burger King France : coût unitaire de chaque élément de menu, €/1000 kcal, meilleurs plans pour manger un max pour pas cher.">
+  <title>FastFist — Gratte les fast-foods</title>
+  <meta name="description" content="Analyse des menus Burger King et Quick France : coût unitaire de chaque élément de menu, €/1000 kcal, meilleurs plans pour manger un max pour pas cher.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍔</text></svg>">
   <link rel="stylesheet" href="assets/style.css">
 </head>
@@ -15,9 +15,10 @@
         <span class="logo" aria-hidden="true">✊🍔</span>
         <div>
           <h1>FastFist</h1>
-          <p class="tag">Gratte le King&nbsp;: le max de bouffe pour le min d'euros</p>
+          <p class="tag">Le max de bouffe pour le min d'euros</p>
         </div>
       </div>
+      <div class="seg chain-seg" id="chain-seg" role="group" aria-label="Chaîne"></div>
       <div class="resto-picker">
         <label for="resto-search" class="sr">Restaurant</label>
         <div class="picker-row">
@@ -33,6 +34,7 @@
       <button role="tab" data-tab="menus">🍟 Menus</button>
       <button role="tab" data-tab="produits">🧾 Produits seuls</button>
       <button role="tab" data-tab="optim">🧮 Optimiseur</button>
+      <button role="tab" data-tab="duel">⚔️ Duel</button>
       <button role="tab" data-tab="france">🇫🇷 France</button>
       <button role="tab" data-tab="methode">❓ Méthode</button>
     </nav>
@@ -125,6 +127,13 @@
       </div>
     </section>
 
+    <!-- ================================================================ DUEL -->
+    <section id="tab-duel" class="tab-panel" hidden>
+      <p class="hint">Ton resto face au resto le plus proche de chaque autre chaîne. Mêmes calculs, mêmes règles&nbsp;: que le meilleur gratteur gagne.</p>
+      <div id="duel"></div>
+      <p class="hint" id="duel-missing"></p>
+    </section>
+
     <!-- ================================================================ FRANCE -->
     <section id="tab-france" class="tab-panel" hidden>
       <div class="cards" id="france-cards"></div>
@@ -149,7 +158,7 @@
       <div class="panel prose">
         <h2>Comment c'est calculé</h2>
         <h3>D'où viennent les données</h3>
-        <p>Un scraper (<code>scraper/scrape.py</code>) récupère pour <strong>chaque restaurant Burger King France</strong> le catalogue complet utilisé par la commande en ligne&nbsp;: prix des produits seuls, prix des menus en taille M / L / XL, menus enfants, Bon et Pas Cher, offres, et les <strong>suppléments</strong> facturés quand tu prends une option premium dans un menu. Les calories et protéines viennent des fiches nutritionnelles publiques du site. Les prix varient énormément d'un resto à l'autre, d'où le sélecteur.</p>
+        <p>Un scraper par chaîne (<code>scraper/bk.py</code>, <code>scraper/quick.py</code>) récupère pour <strong>chaque restaurant</strong> le catalogue complet utilisé par la commande en ligne&nbsp;: prix des produits seuls, prix des menus en taille M / L / XL, menus enfants, Bon et Pas Cher, offres, et les <strong>suppléments</strong> facturés quand tu prends une option premium dans un menu. Les calories et protéines viennent des fiches nutritionnelles publiques (pages produits chez BK, déclaration nutritionnelle PDF chez Quick). McDonald's et KFC protègent leur site contre les robots&nbsp;: ils ne sont pas inclus. Les prix varient énormément d'un resto à l'autre, d'où le sélecteur.</p>
         <h3>Prix à la carte</h3>
         <p>Pour chaque élément d'un menu, on prend le prix auquel il est vendu seul dans le même resto. Si un élément n'est pas vendu seul (ex. un burger qui n'existe qu'en menu), on prend le prix catalogue de l'article, signalé par <span class="badge warn">≈</span>.</p>
         <h3>Coût unitaire dans un menu</h3>
@@ -166,14 +175,14 @@
         <ul>
           <li>Prix de la commande en ligne / borne&nbsp;: les prix en caisse ou en livraison peuvent différer, et les coupons de l'appli ne sont pas pris en compte.</li>
           <li>Quelques produits n'ont pas de fiche nutritionnelle&nbsp;: ils comptent pour 0&nbsp;kcal.</li>
-          <li>Site non officiel, sans lien avec Burger King®. Toutes les marques appartiennent à leurs propriétaires.</li>
+          <li>Site non officiel, sans lien avec Burger King® ni Quick®. Toutes les marques appartiennent à leurs propriétaires.</li>
         </ul>
       </div>
     </section>
   </main>
 
   <footer class="wrap foot">
-    <span id="updated"></span> · Projet non officiel, sans affiliation avec Burger King®. · <a href="https://github.com/charlesterrey/fastfist">Code source</a>
+    <span id="updated"></span> · Projet non officiel, sans affiliation avec Burger King® ni Quick®. · <a href="https://github.com/charlesterrey/fastfist">Code source</a>
   </footer>
 
   <script src="assets/engine.js"></script>

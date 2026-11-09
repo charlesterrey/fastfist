@@ -8,7 +8,7 @@
     dessert: "Desserts", boisson: "Boissons", sauce: "Sauces", jouet: "Jouets", autre: "Autres",
     menu: "Menus", enfant: "Menus enfants",
   };
-  const FAMILY_ORDER = ["Bon et Pas Cher", "Menus", "Enfants", "Offres du moment"];
+  const FAMILY_ORDER = ["Bon et Pas Cher", "Formules & petits prix", "Menus", "Enfants", "Offres du moment"];
 
   function norm(s) {
     return (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
@@ -16,6 +16,7 @@
   }
 
   function menuFamily(meta, categories) {
+    if (meta.fam) return meta.fam;
     const c = meta.cats || [];
     if (c.includes("cc-king-deal")) return "Bon et Pas Cher";
     if (meta.kids || c.includes("cc-menusenfants")) return "Enfants";

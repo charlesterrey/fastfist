@@ -56,6 +56,7 @@ h2 small { font-weight: 400; color: var(--muted); font-size: .8em; }
 .logo { font-size: 30px; white-space: nowrap; }
 .brand h1 { margin: 0; font-size: 1.5rem; letter-spacing: -.02em; color: var(--accent); font-weight: 900; }
 .tag { margin: 0; color: var(--muted); font-size: .88rem; }
+.chain-seg button { font-size: .95rem; }
 .resto-picker { position: relative; flex: 1 1 300px; min-width: 0; max-width: 620px; }
 .picker-row { display: flex; gap: 8px; }
 .picker-row input { min-width: 0; }
@@ -187,3 +188,15 @@ ol.rank li:last-child { border-bottom: 0; }
   .thumb { width: 34px; height: 34px; }
   table.data th, table.data td { padding: 7px 8px; }
 }
+
+/* ---------- duel */
+.duel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; }
+.duel table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.duel th, .duel td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.duel thead th { font-size: 1rem; }
+.duel thead th small { display: block; font-weight: 400; color: var(--muted); font-size: .8rem; }
+.duel td.win { background: var(--hl); }
+.duel td.win b::after { content: " 🏆"; }
+.duel .metric { font-weight: 600; color: var(--muted); font-size: .85rem; }
+.duel td .muted { display: block; font-size: .8rem; }
+.score { font-size: 1.2rem; font-weight: 800; margin: 0 0 12px; }
