@@ -9,19 +9,20 @@ les meilleures façons d'avoir un repas qui cale pour pas cher.
 | ⚡ Quick | 200 | API publique de quick.fr + déclaration nutritionnelle (PDF) |
 | McDonald's, KFC | — | non inclus : leurs sites bloquent la récupération automatique (captcha / anti-bot) |
 
-## Ce que fait la page
+## Le site
 
-| Onglet | Contenu |
+**https://charlesterrey.github.io/fastfist/** : site statique (HTML + JS vanilla, aucune dépendance), clair / sombre, pensé mobile d'abord.
+
+| Page | Contenu |
 |---|---|
-| 🏆 **Top gratte** | Les meilleurs plans du resto choisi : ce qui cale le plus par euro (€/1000 kcal), le burger le moins cher, le meilleur prix par burger en menu, la plus grosse économie vs à la carte, les protéines les moins chères, la pièce de poulet la moins chère. Plus un classement de **toutes** les offres (produits seuls + menus en version optimisée). |
-| 🍟 **Menus** | Chaque menu (classiques M/L/XL, enfants, Bon et Pas Cher, Baby Burgers, offres…) avec son prix, sa valeur à la carte, l'économie réalisée et, en cliquant dessus, **le coût unitaire de chaque élément** (prix du menu réparti au prorata des prix à la carte) et son coût marginal. Chaque menu peut être affiché en composition par défaut ou en version « maxée » (valeur, calories/€, protéines/€) : le meilleur choix est fait automatiquement à chaque étape, suppléments compris. |
-| 🧾 **Produits seuls** | Tous les produits vendus seuls : prix, écart avec la médiane France, kcal, €/1000 kcal, protéines, €/10 g de protéines, €/pièce (nuggets, tenders, onion rings…). |
-| 🧮 **Optimiseur** | « J'ai 10 € » → la commande qui maximise les calories / protéines / nombre de burgers / pièces / valeur. Ou « je veux 2000 kcal » → la commande la moins chère pour y arriver. Optimum exact (sac à dos borné, programmation dynamique au centime). |
-| ⚔️ **Duel** | Ton resto face au resto le plus proche de l'autre chaîne : burger le moins cher, menu le moins cher, prix par burger, €/1000 kcal, protéines, poulet, ce que 10 € achètent… avec un score. |
-| 🇫🇷 **France** | Indice de prix de chaque resto (100 = médiane France), les restos les moins chers / plus chers, les moins chers autour de toi. |
+| 🏆 **Bons plans** | Le resto en un coup d'œil : « avec 5 / 10 / 15 €, tu manges… » (optimum exact), les 8 meilleurs plans (ce qui cale le plus, burger le moins cher, prix par burger en menu, plus grosse économie, protéines, poulet, menus enfant / adulte les moins chers), top calories par euro, menus qui font économiser, produits à moins de 3 €. |
+| 🍟 **Menus** | Tous les menus en cartes (familles, recherche, tri), en composition par défaut ou « maxée » (valeur, calories, protéines). La fiche d'un menu montre **le coût unitaire de chaque élément**, le coût marginal et la répartition du prix, et permet de **changer chaque choix** (tout se recalcule, suppléments compris), de changer de taille et de comparer au reste de la France. |
+| 🧾 **Carte** | Tous les produits seuls : prix, écart à la médiane France, kcal, €/1000 kcal, protéines, €/pièce. La fiche produit montre **son vrai prix dans chaque menu** et les restos où il est le moins cher. |
+| 💶 **Budget** | Optimiseur en direct : un budget, ou un objectif (kcal, protéines, burgers, pièces, valeur), donne la commande optimale. Catégories autorisées, quantité max par article, commande copiable. |
+| ⚔️ **Duel** | Ton resto face au resto le plus proche de l'autre chaîne, sur 9 critères, avec un score. |
+| 🇫🇷 **France** | Indice de prix de chaque resto, classements, les moins chers autour de toi (géolocalisation). |
 
-Les prix **varient énormément d'un resto à l'autre** (le cheeseburger va du simple au double), d'où le
-sélecteur de restaurant (recherche ville / CP / nom, ou géolocalisation).
+Chaque page, resto et fiche a son propre lien (partageable). Raccourcis : `/` pour changer de resto, `Échap` pour fermer un panneau.
 
 ## Données
 
