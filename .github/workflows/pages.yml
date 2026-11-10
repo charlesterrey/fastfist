@@ -28,6 +28,8 @@ jobs:
         with:
           ref: main
       - uses: actions/configure-pages@v5
+        with:
+          enablement: true   # tente d'activer GitHub Pages automatiquement
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
