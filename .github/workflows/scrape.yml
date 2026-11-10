@@ -1,0 +1,36 @@
+name: Mise à jour des prix
+
+on:
+  schedule:
+    - cron: "17 4 * * *"   # tous les jours vers 5-6h (heure de Paris)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Outils (pdftotext pour la nutrition Quick)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils
+      - name: Burger King
+        run: python3 scraper/bk.py --workers 12
+      - name: Quick
+        run: python3 scraper/quick.py --workers 8
+      - name: Commit des nouvelles données
+        run: |
+          git config user.name "fastfist-bot"
+          git config user.email "fastfist-bot@users.noreply.github.com"
+          git add -A data
+          if git diff --cached --quiet; then
+            echo "Aucun changement de prix."
+          else
+            git commit -m "data: prix du $(date -u +%Y-%m-%d)"
+            git push
+          fi
