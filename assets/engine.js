@@ -91,7 +91,7 @@
     if (mode === "default") {
       pick = ms.steps.map((s) => opt(s.def));
     } else if (mode === "value") {
-      pick = ms.steps.map((s) => best(s.opts.map(opt), (x) => (x.p.refApprox && x.ref >= ms.price * 0.75 ? 0 : x.ref) - x.sup, (x) => x.kcal));
+      pick = ms.steps.map((s) => best(s.opts.map(opt), (x) => (x.p.refApprox && x.ref >= ms.price * 0.5 ? 0 : x.ref) - x.sup, (x) => x.kcal));
     } else if (mode === "burgers" || mode === "pcs") {
       const f = mode === "burgers" ? (x) => x.p.burgers : (x) => x.p.pcs;
       pick = ms.steps.map((s) => best(s.opts.map(opt), (x) => f(x) * 1e6 - x.sup, (x) => x.kcal));
@@ -110,11 +110,20 @@
     return summarize(ms, pick, mode);
   }
 
+  // Composition choisie à la main : `chosen` = un produit par étape (null = choix par défaut)
+  function custom(ms, chosen) {
+    const pick = ms.steps.map((st, i) => {
+      const p = (chosen && chosen[i] && st.opts.includes(chosen[i])) ? chosen[i] : st.def;
+      return { p, sup: supOf(p, ms.size), ref: p.ref || 0, kcal: p.kcal || 0, prot: p.prot || 0 };
+    });
+    return summarize(ms, pick, "custom");
+  }
+
   function summarize(ms, pick, mode) {
     const paid = ms.price + sum(pick, (x) => x.sup);
     // Un élément non vendu seul dont le prix catalogue dépasse ~le prix du menu (ex. Baby Burgers :
     // chaque mini-burger porte le prix de la boîte) n'a pas de prix à la carte fiable.
-    pick = pick.map((x) => x.p.refApprox && x.ref >= ms.price * 0.75 ? { ...x, ref: null } : x);
+    pick = pick.map((x) => x.p.refApprox && x.ref >= ms.price * 0.5 ? { ...x, ref: null } : x);
     const unknown = pick.some((x) => x.ref == null);
     const ref = unknown ? null : sum(pick, (x) => x.ref);
     const kc = sum(pick, (x) => x.kcal);
@@ -222,7 +231,7 @@
     return t;
   }
 
-  const api = { buildModel, configure, offers, knapsack, norm, ROLE_LABEL, FAMILY_ORDER, supOf };
+  const api = { buildModel, configure, custom, offers, knapsack, norm, ROLE_LABEL, FAMILY_ORDER, supOf };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Engine = api;
 })(typeof window !== "undefined" ? window : globalThis);
